@@ -1,0 +1,134 @@
+# Default values for htcondor-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+maxWorkers: 14
+cpusPerWorker: 2
+memoryGbPerWorker: 2000
+maxWorkersPerCycle: 2
+
+controller:
+  image:
+    repository: artifactory.systematica.com/docker-local-snapshot/htcondor-controller
+    tag: V9_0_2
+  resources: {}
+
+proxy:
+  image:
+    repository: artifactory.systematica.com/docker-virtual/bitnami/kubectl
+    tag: 1.21.2
+  resources: {}
+
+collector:
+  image:
+    repository: artifactory.systematica.com/docker-local-snapshot/htcondor-collector
+    tag: 9.0.1-el7
+  resources:
+    requests:
+      memory: 1.0Gi
+      cpu: 100m
+    limits:
+      memory: 1.0Gi
+      cpu: 1000m
+  service:
+    port: 9618
+  horizontalPodAutoscaling:
+    enabled: false
+    # minReplicas: 1
+    # maxReplicas: 100
+    # targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+negotiator:
+  image:
+    repository: artifactory.systematica.com/docker-local-snapshot/htcondor-negotiator
+    tag: 9.0.1-el7
+  resources:
+    requests:
+      memory: 1.0Gi
+      cpu: 100m
+    limits:
+      memory: 1.0Gi
+      cpu: 1000m
+  horizontalPodAutoscaling:
+    enabled: false
+  service:
+    port: 9618
+
+worker:
+  image:
+    repository: artifactory.systematica.com/docker-local-snapshot/htcondor-worker
+    tag: 9.0.1-el7
+  resources:
+    requests:
+      memory: 1.0Gi
+      cpu: 100m
+    limits:
+      memory: 2.0Gi
+      cpu: 2
+  horizontalPodAutoscaling:
+    enabled: false
+  service:
+    port: 9618
+
+schedd:
+  image:
+    repository: artifactory.systematica.com/docker-local-snapshot/htcondor-schedd
+    tag: 9.0.1-el7
+  resources:
+    requests:
+      memory: 1.0Gi
+      cpu: 100m
+    limits:
+      memory: 1.0Gi
+      cpu: 1000m
+  horizontalPodAutoscaling:
+    enabled: false
+  service:
+    port: 9618
+
+
+pool:
+  replicaCount: 1
+  horizontalPodAutoscaling:
+    enabled: false
+  podAnnotations: {}
+
+imagePullPolicy: Always
+#pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  # If name not set and create is true, is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+ingress:
+  enabled: false

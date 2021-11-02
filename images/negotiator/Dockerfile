@@ -1,19 +1,11 @@
-FROM centos:7
-
-# Dependencies
-RUN yum -y install wget
-
-# Install yum repository
-RUN cd /etc/yum.repos.d && wget http://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
-
-# Import signing key
-RUN wget http://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor && rpm --import RPM-GPG-KEY-HTCondor
-
-# Install HTCondor
-RUN yum -y install condor
+ARG HTCONDOR_GIT_URL="https://github.com/SystematicaInvestments/htcondor.git"
+FROM artifactory.systematica.com/docker-virtual/htcondor/cm:9.0.1-el7
+USER root
 
 COPY condor_config.local /etc/condor/
+#RUN mkdir -p /etc/condor/config.d/
 COPY negotiator /etc/condor/config.d
 
 COPY docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENV HTCONDOR_GIT_URL="https://github.com/SystematicaInvestments/htcondor.git"
+CMD ["/docker-entrypoint.sh"]

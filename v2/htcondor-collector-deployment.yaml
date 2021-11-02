@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -6,6 +6,9 @@ metadata:
   name: htcondor-collector
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: htcondor-collector
   template:
     metadata:
       labels:
@@ -13,11 +16,11 @@ spec:
     spec:
       containers:
       - name: htcondor-collector
-        image: alahiff/htcondor-collector:latest
+        image: artifactory.systematica.com/docker-virtual/alahiff/htcondor-collector:latest
         resources:
           requests:
-            memory: "1.0Gi"
-            cpu: "1000m"
+            memory: "200Mi"
+            cpu: "100m"
           limits:
             memory: "1.0Gi"
             cpu: "1000m"

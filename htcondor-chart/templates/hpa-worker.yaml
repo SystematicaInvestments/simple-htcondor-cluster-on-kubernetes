@@ -1,0 +1,28 @@
+{{- if .Values.worker.horizontalPodAutoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    {{- include "htcondor-chart.labels" . | nindent 4 }}-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Release.Name }}-worker
+  minReplicas: {{ .Values.worker.horizontalPodAutoscaling.minReplicas }}
+  maxReplicas: {{ .Values.worker.horizontalPodAutoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.worker.horizontalPodAutoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.worker.horizontalPodAutoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.worker.horizontalPodAutoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.worker.horizontalPodAutoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

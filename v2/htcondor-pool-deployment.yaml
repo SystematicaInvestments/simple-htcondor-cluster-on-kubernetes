@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -6,6 +6,9 @@ metadata:
   name: htcondor-pool
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: htcondor-pool
   template:
     metadata:
       labels:
@@ -13,7 +16,7 @@ spec:
     spec:
       containers:
       - name: controller
-        image: alahiff/htcondor-pool:latest
+        image: artifactory.systematica.com/docker-virtual/alahiff/htcondor-pool:latest
         imagePullPolicy: Always
         env:
         - name: HTCONDOR_LABEL_SELECTOR
@@ -38,7 +41,7 @@ spec:
          - name: pod-template
            mountPath: /etc/pool
       - name: proxy
-        image: alahiff/kubectl:latest
+        image: artifactory.systematica.com/docker-virtual/alahiff/kubectl:latest
         imagePullPolicy: IfNotPresent
         command:
         - "/kubectl"

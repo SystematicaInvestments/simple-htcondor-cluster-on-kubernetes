@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-worker-pod-template
+data:
+  {{ .Release.Name }}-worker-pod-template.json: |
+    {
+      "kind":"Pod",
+      "apiVersion":"v1",
+      "metadata":{
+        "generateName":"{{ .Release.Name }}-worker",
+        "namespace":"{{ .Release.Namespace }}",
+        "labels":{
+          "app":"{{ .Release.Name }}-worker"
+        }
+      },
+      "spec":{
+        "volumes":[
+          {
+            "name":"pool-password",
+            "secret":{
+              "secretName":"{{ .Release.Name }}-pool-password",
+              "defaultMode":384
+            }
+          }
+        ],
+        "containers":[
+          {
+            "name":"htcondor-worker",
+            "image":"{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}",
+            "env":[
+              {
+                "name":"CONDOR_HOST",
+                "value":"{{ .Release.Name }}-collector"
+              },
+              {
+                "name":"SEC_PASSWORD_FILE",
+                "value":"/etc/condor/pool_password/password"
+              },
+              {
+                "name":"CONDOR_CPUS",
+                "value":{{ .Values.cpusPerWorker |quote }}
+              },
+              {
+                "name":"CONDOR_MEMORY",
+                "value":{{ .Values.memoryGbPerWorker |quote }}
+              }
+            ],
+            "resources":{
+              "limits":{
+                "memory":"2Gi",
+                "cpu":{{ .Values.cpusPerWorker |quote }}
+              },
+              "requests":{
+                "cpu":{{ .Values.worker.resources.requests.cpu |quote }},
+                "memory": {{ .Values.worker.resources.requests.memory |quote }}
+              }
+            },
+            "volumeMounts":[
+              {
+                "name":"pool-password",
+                "mountPath":"/etc/condor/pool_password"
+              }
+            ],
+            "imagePullPolicy":"Always"
+          }
+        ],
+        "restartPolicy":"Never"
+      }
+    }

@@ -1,7 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import classad
 import htcondor
-import json, os, requests
+import json
+import os
+import requests
+import time
+from datetime import datetime
 
 def getIdleJobs():
     coll = htcondor.Collector()
@@ -22,9 +26,9 @@ def getIdleJobs():
 
 def getNumPods(labelSelector):
     try:
-        r = requests.get('http://127.0.0.1:8001/api/v1/namespaces/default/pods?labelSelector=' + labelSelector)
+        r = requests.get(f'http://127.0.0.1:8001/api/v1/namespaces/{namespace}/pods?labelSelector={labelSelector}')
     except:
-        print 'Failed to get list of pods'
+        print('Failed to get list of pods')
         exit(1)
 
     podsPending = 0
@@ -41,22 +45,22 @@ def getNumPods(labelSelector):
     return (podsPending, podsRunning)
 
 def createPods(num, template, name):
-    print 'Creating',num,'pods'
+    print(f"Creating {num} pods")
     try:
         with open(template, 'r') as content:
             raw = content.read()
     except:
-        print 'Failed to open pod template'
+        print('Failed to open pod template')
         exit(1)
 
     for i in range (0, num):
        pod = json.loads(raw)
        pod['metadata']['generateName'] = name + '-'
        try:
-           r = requests.post('http://127.0.0.1:8001/api/v1/namespaces/default/pods', data = json.dumps(pod))
+           r = requests.post(f'http://127.0.0.1:8001/api/v1/namespaces/{namespace}/pods', data=json.dumps(pod))
        except:
-           print 'Failed to create pod'
-       print '  - status = ',r.status_code
+           print('Failed to create pod')
+       print(f"  - status = {r.status_code}")
 
 if __name__ == '__main__':
     time.sleep(10)
@@ -66,6 +70,7 @@ if __name__ == '__main__':
     maxWorkers = int(os.environ['HTCONDOR_MAX_WORKERS'])
     cpusPerWorker = int(os.environ['HTCONDOR_CPUS_PER_WORKER'])
     maxWorkersPerCycle = int(os.environ['HTCONDOR_MAX_WORKERS_PER_CYCLE'])
+    namespace = open("/var/run/secrets/kubernetes.io/serviceaccount/namespace", "r").read()
 
     while True:
         # Get number of idle jobs
@@ -74,7 +79,7 @@ if __name__ == '__main__':
         # Get numbers of running & idle pods
         (numPendingPods, numRunningPods) = getNumPods(labelSelector)
 
-        print datetime.now().strftime('%Y-%m-%d %H:%M:%S'),'Pending:',numPendingPods,'Running:',numRunningPods,'NumIdleJobs=',numIdleJobs
+        print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'),'Pending:',numPendingPods,'Running:',numRunningPods,'NumIdleJobs=',numIdleJobs)
 
         # Estimate number of worker pods to create
         num = numIdleJobs/cpusPerWorker

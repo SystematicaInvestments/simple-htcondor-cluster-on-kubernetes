@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-pool
+  labels:
+    {{- include "htcondor-chart.labels" . | nindent 4 }}-pool
+spec:
+  {{- if not .Values.pool.horizontalPodAutoscaling.enabled }}
+  replicas: {{ .Values.pool.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "htcondor-chart.selectorLabels" . | nindent 6 }}-pool
+  template:
+    metadata:
+      {{- with .Values.pool.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "htcondor-chart.selectorLabels" . | nindent 8 }}-pool
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "htcondor-chart.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: controller
+        image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        command: ["sh", "-c", "echo $HOSTNAME && tail -f /dev/null"]
+        args: [ "HOSTNAME", "KUBERNETES_PORT" ]
+        env:
+        - name: HTCONDOR_LABEL_SELECTOR
+          value: app={{ .Release.Name }}-worker
+        - name: HTCONDOR_POD_TEMPLATE
+          value: "/etc/pool/{{ .Release.Name }}-worker-pod-template.json"
+        - name: HTCONDOR_MAX_WORKERS
+          value: {{ .Values.maxWorkers | quote }}
+        - name: HTCONDOR_CPUS_PER_WORKER
+          value: {{ .Values.cpusPerWorker |quote }}
+        - name: HTCONDOR_MAX_WORKERS_PER_CYCLE
+          value: {{ .Values.maxWorkersPerCycle |quote}}
+        - name: HTCONDOR_POD_NAME
+          value: {{ .Release.Name }}-worker
+        - name: CONDOR_HOST
+          value: "{{ .Release.Name }}-collector"
+        - name: SEC_PASSWORD_FILE
+          value: "/etc/condor/pool_password/password"
+        resources:
+          {{- toYaml .Values.controller.resources | nindent 10 }}
+        volumeMounts:
+          - name: pool-password
+            mountPath: /etc/condor/pool_password
+          - name: pod-template
+            mountPath: /etc/pool
+      - name: proxy
+        image: "{{ .Values.proxy.image.repository }}:{{ .Values.proxy.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        command:
+        - "kubectl"
+        args:
+        - "proxy"
+        resources:
+          {{- toYaml .Values.proxy.resources | nindent 12 }}
+      volumes:
+      - name: pod-template
+        configMap:
+          name: {{ .Release.Name }}-worker-pod-template
+      - name: pool-password
+        secret:
+          defaultMode: 0600
+          secretName: {{ .Release.Name }}-pool-password
+      {{- with .Values.pool.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

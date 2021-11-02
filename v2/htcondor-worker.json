@@ -21,7 +21,7 @@
       "containers":[
          {
             "name":"htcondor-worker",
-            "image":"alahiff/htcondor-worker-v2:latest",
+            "image":"artifactory.systematica.com/docker-virtual/alahiff/htcondor-worker-v2:latest",
             "env":[
                {
                   "name":"CONDOR_HOST",
@@ -42,11 +42,12 @@
             ],
             "resources":{
                "limits":{
-                  "memory":"2Gi"
+                  "memory":"2Gi",
+                  "cpu":"2"
                },
                "requests":{
-                  "cpu":"1",
-                  "memory":"2Gi"
+                  "cpu":"100m",
+                  "memory":"500Mi"
                }
             },
             "volumeMounts":[

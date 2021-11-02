@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    app: {{ .Release.Name }}-worker
+spec:
+  {{- if not .Values.worker.horizontalPodAutoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "htcondor-chart.selectorLabels" . | nindent 6 }}-worker
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-worker
+        {{- include "htcondor-chart.selectorLabels" . | nindent 8 }}-worker
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "htcondor-chart.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}-worker
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        resources:
+          {{- toYaml .Values.collector.resources | nindent 12 }}
+        env:
+        - name: CONDOR_HOST
+          value: "{{ .Release.Name }}-collector"
+        - name: SEC_PASSWORD_FILE
+          value: "/etc/condor/pool_password/password"
+        volumeMounts:
+          - name: pool-password
+            mountPath: /etc/condor/pool_password
+        ports:
+        - containerPort: 9618
+          protocol: TCP
+      volumes:
+      - name: pool-password
+        secret:
+          defaultMode: 0600
+          secretName: {{ .Release.Name }}-pool-password
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
